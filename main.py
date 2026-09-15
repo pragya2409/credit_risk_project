@@ -25,3 +25,21 @@ print(df['DAYS_EMPLOYED'].isnull().sum())
 print(df['DAYS_EMPLOYED_ANOMALY'].sum())
 df = df[df['CODE_GENDER'] != 'XNA']
 print(df['CODE_GENDER'].value_counts())
+threshold = 0.5
+cols_before = df.shape[1]
+df = df.loc[:, df.isnull().mean() < threshold]
+cols_after = df.shape[1]
+print(f"Dropped {cols_before - cols_after} columns with >50% missing")
+remaining_missing = df.isnull().sum().sort_values(ascending=False)
+print(remaining_missing[remaining_missing > 0].head(10))
+cols_with_missing = df.columns[df.isnull().any()].tolist()
+for col in cols_with_missing:
+    if df[col].dtype != 'object':  # only flag numeric columns for now
+        df[col + '_MISSING'] = df[col].isnull().astype(int)
+from sklearn.impute import SimpleImputer
+
+numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+imputer = SimpleImputer(strategy='median')
+df[numeric_cols] = imputer.fit_transform(df[numeric_cols])
+print(df[numeric_cols].isnull().sum().sum())
+df = df.copy()
