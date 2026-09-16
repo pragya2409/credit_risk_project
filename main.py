@@ -78,6 +78,8 @@ X_test_scaled = pd.DataFrame(
 
 print("Scaling complete.")
 df.to_csv('data/application_train_clean.csv', index=False)
+
+#Logistic Regression
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 
@@ -89,6 +91,7 @@ lr_auc = roc_auc_score(y_test, lr_preds)
 
 print(f"Logistic Regression baseline AUC: {lr_auc:.4f}")
 
+#LightGBM
 from lightgbm import LGBMClassifier
 
 lgbm_model = LGBMClassifier(n_estimators=500, random_state=42)
@@ -98,3 +101,14 @@ lgbm_preds = lgbm_model.predict_proba(X_test)[:, 1]
 lgbm_auc = roc_auc_score(y_test, lgbm_preds)
 
 print(f"LightGBM baseline AUC: {lgbm_auc:.4f}")
+
+#XGBoost
+from xgboost import XGBClassifier
+
+xgb_model = XGBClassifier(n_estimators=500, random_state=42, eval_metric='logloss')
+xgb_model.fit(X_train, y_train)  # same raw, unscaled X_train as LightGBM
+
+xgb_preds = xgb_model.predict_proba(X_test)[:, 1]
+xgb_auc = roc_auc_score(y_test, xgb_preds)
+
+print(f"XGBoost baseline AUC: {xgb_auc:.4f}")
