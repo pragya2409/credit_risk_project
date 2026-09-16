@@ -43,3 +43,44 @@ imputer = SimpleImputer(strategy='median')
 df[numeric_cols] = imputer.fit_transform(df[numeric_cols])
 print(df[numeric_cols].isnull().sum().sum())
 df = df.copy()
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Separate features and target
+X = df.drop(columns=['TARGET'])
+y = df['TARGET']
+
+# One-hot encode categorical columns (needed for LR; harmless for LightGBM/XGBoost)
+categorical_cols = X.select_dtypes(include='str').columns.tolist()
+X = pd.get_dummies(X, columns=categorical_cols, drop_first=True)
+
+print(f"Shape after encoding: {X.shape}")
+
+# Train/test split — stratify to preserve the 92/8 class balance in both sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+print(f"Train shape: {X_train.shape}, Test shape: {X_test.shape}")
+
+# Scale for LR specifically — LightGBM/XGBoost use X_train/X_test directly, unscaled
+scaler = StandardScaler()
+X_train_scaled = pd.DataFrame(
+    scaler.fit_transform(X_train), columns=X_train.columns, index=X_train.index
+)
+X_test_scaled = pd.DataFrame(
+    scaler.transform(X_test), columns=X_test.columns, index=X_test.index
+)
+
+print("Scaling complete.")
+df.to_csv('data/application_train_clean.csv', index=False)
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+lr_model = LogisticRegression(max_iter=1000)git
+lr_model.fit(X_train_scaled, y_train)
+
+lr_preds = lr_model.predict_proba(X_test_scaled)[:, 1]
+lr_auc = roc_auc_score(y_test, lr_preds)
+
+print(f"Logistic Regression baseline AUC: {lr_auc:.4f}")
