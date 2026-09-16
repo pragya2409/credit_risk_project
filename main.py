@@ -56,6 +56,10 @@ X = pd.get_dummies(X, columns=categorical_cols, drop_first=True)
 
 print(f"Shape after encoding: {X.shape}")
 
+import re
+X.columns = [re.sub(r'[^A-Za-z0-9_]+', '_', str(col)) for col in X.columns]
+print(f"Duplicate columns after cleaning: {X.columns.duplicated().sum()}")
+
 # Train/test split — stratify to preserve the 92/8 class balance in both sets
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
@@ -77,10 +81,20 @@ df.to_csv('data/application_train_clean.csv', index=False)
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 
-lr_model = LogisticRegression(max_iter=1000)git
+lr_model = LogisticRegression(max_iter=1000)
 lr_model.fit(X_train_scaled, y_train)
 
 lr_preds = lr_model.predict_proba(X_test_scaled)[:, 1]
 lr_auc = roc_auc_score(y_test, lr_preds)
 
 print(f"Logistic Regression baseline AUC: {lr_auc:.4f}")
+
+from lightgbm import LGBMClassifier
+
+lgbm_model = LGBMClassifier(n_estimators=500, random_state=42)
+lgbm_model.fit(X_train, y_train)  # note: raw X_train, not scaled — LightGBM doesn't need scaling
+
+lgbm_preds = lgbm_model.predict_proba(X_test)[:, 1]
+lgbm_auc = roc_auc_score(y_test, lgbm_preds)
+
+print(f"LightGBM baseline AUC: {lgbm_auc:.4f}")
