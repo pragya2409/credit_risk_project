@@ -105,7 +105,7 @@ print(f"LightGBM baseline AUC: {lgbm_auc:.4f}")
 #XGBoost
 from xgboost import XGBClassifier
 
-xgb_model = XGBClassifier(n_estimators=500, random_state=42, eval_metric='logloss')
+xgb_model = XGBClassifier(n_estimators=500, learning_rate=0.05, random_state=42, eval_metric='logloss')
 xgb_model.fit(X_train, y_train)  # same raw, unscaled X_train as LightGBM
 
 xgb_preds = xgb_model.predict_proba(X_test)[:, 1]
