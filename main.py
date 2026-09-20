@@ -185,3 +185,22 @@ final_auc = roc_auc_score(y_test, final_test_preds)
 
 print(f"Stacked ensemble AUC (on true test set): {final_auc:.4f}")
 print(f"Meta-model weights: LightGBM={meta_model.coef_[0][0]:.3f}, XGBoost={meta_model.coef_[0][1]:.3f}, LR={meta_model.coef_[0][2]:.3f}")
+
+
+from sklearn.metrics import average_precision_score
+# Week 5: Comparison summary
+results_summary = pd.DataFrame({
+    'Model': ['Logistic Regression', 'LightGBM', 'XGBoost', 'Stacked Ensemble'],
+    'Standalone/Final AUC': [0.7469, 0.7520, 0.7562, final_auc]
+})
+
+# PR-AUC (average precision) — more informative than AUC on imbalanced data
+lr_pr_auc = average_precision_score(y_test, lr_preds)
+lgbm_pr_auc = average_precision_score(y_test, lgbm_preds)
+xgb_pr_auc = average_precision_score(y_test, xgb_preds)
+stacked_pr_auc = average_precision_score(y_test, final_test_preds)
+
+results_summary['PR-AUC'] = [lr_pr_auc, lgbm_pr_auc, xgb_pr_auc, stacked_pr_auc]
+
+print(results_summary)
+results_summary.to_csv('results_summary.csv', index=False)
