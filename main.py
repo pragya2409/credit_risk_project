@@ -144,3 +144,44 @@ lgbm_oof, lgbm_test = generate_oof_predictions(
 
 lgbm_oof_auc = roc_auc_score(y_train, lgbm_oof)
 print(f"LightGBM OOF AUC (train set, via CV): {lgbm_oof_auc:.4f}")
+
+# XGBoost OOF — same function, unscaled data, tuned learning rate from earlier
+xgb_oof, xgb_test = generate_oof_predictions(
+    lambda: XGBClassifier(n_estimators=500, learning_rate=0.05, random_state=42, eval_metric='logloss'),
+    X_train, y_train, X_test
+)
+xgb_oof_auc = roc_auc_score(y_train, xgb_oof)
+print(f"XGBoost OOF AUC: {xgb_oof_auc:.4f}")
+
+
+# LR OOF — note: uses the SCALED data, not X_train/X_test
+lr_oof, lr_test = generate_oof_predictions(
+    lambda: LogisticRegression(max_iter=1000),
+    X_train_scaled, y_train, X_test_scaled
+)
+lr_oof_auc = roc_auc_score(y_train, lr_oof)
+print(f"Logistic Regression OOF AUC: {lr_oof_auc:.4f}")
+
+import pandas as pd
+
+# Assemble meta-features from OOF predictions
+X_meta_train = pd.DataFrame({
+    'lgbm': lgbm_oof,
+    'xgb': xgb_oof,
+    'lr': lr_oof
+})
+X_meta_test = pd.DataFrame({
+    'lgbm': lgbm_test,
+    'xgb': xgb_test,
+    'lr': lr_test
+})
+
+# Train the meta-learner
+meta_model = LogisticRegression()
+meta_model.fit(X_meta_train, y_train)
+
+final_test_preds = meta_model.predict_proba(X_meta_test)[:, 1]
+final_auc = roc_auc_score(y_test, final_test_preds)
+
+print(f"Stacked ensemble AUC (on true test set): {final_auc:.4f}")
+print(f"Meta-model weights: LightGBM={meta_model.coef_[0][0]:.3f}, XGBoost={meta_model.coef_[0][1]:.3f}, LR={meta_model.coef_[0][2]:.3f}")
