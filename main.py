@@ -112,3 +112,35 @@ xgb_preds = xgb_model.predict_proba(X_test)[:, 1]
 xgb_auc = roc_auc_score(y_test, xgb_preds)
 
 print(f"XGBoost baseline AUC: {xgb_auc:.4f}")
+
+from sklearn.model_selection import StratifiedKFold
+import numpy as np
+
+def generate_oof_predictions(model_fn, X, y, X_test, n_splits=5):
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    oof_preds = np.zeros(len(X))
+    test_preds = np.zeros(len(X_test))
+
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
+        X_tr, X_val = X.iloc[train_idx], X.iloc[val_idx]
+        y_tr, y_val = y.iloc[train_idx], y.iloc[val_idx]
+
+        model = model_fn()
+        model.fit(X_tr, y_tr)
+
+        oof_preds[val_idx] = model.predict_proba(X_val)[:, 1]
+        test_preds += model.predict_proba(X_test)[:, 1] / n_splits
+
+        print(f"Fold {fold+1}/{n_splits} done")
+
+    return oof_preds, test_preds
+
+
+# Test it on just LightGBM for now
+lgbm_oof, lgbm_test = generate_oof_predictions(
+    lambda: LGBMClassifier(n_estimators=500, random_state=42),
+    X_train, y_train, X_test
+)
+
+lgbm_oof_auc = roc_auc_score(y_train, lgbm_oof)
+print(f"LightGBM OOF AUC (train set, via CV): {lgbm_oof_auc:.4f}")
