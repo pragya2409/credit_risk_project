@@ -204,3 +204,31 @@ results_summary['PR-AUC'] = [lr_pr_auc, lgbm_pr_auc, xgb_pr_auc, stacked_pr_auc]
 
 print(results_summary)
 results_summary.to_csv('results_summary.csv', index=False)
+
+#ROC Curve Overlay
+from sklearn.metrics import roc_curve
+import matplotlib.pyplot as plt
+
+# ROC curve overlay — all 4 models
+plt.figure(figsize=(8, 6))
+for name, preds in [('Logistic Regression', lr_preds), ('LightGBM', lgbm_preds),
+                     ('XGBoost', xgb_preds), ('Stacked Ensemble', final_test_preds)]:
+    fpr, tpr, _ = roc_curve(y_test, preds)
+    auc = roc_auc_score(y_test, preds)
+    plt.plot(fpr, tpr, label=f'{name} (AUC={auc:.4f})')
+
+plt.plot([0, 1], [0, 1], 'k--', label='Random')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves: Baselines vs. Stacked Ensemble')
+plt.legend()
+plt.savefig('roc_comparison.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# AUC / PR-AUC bar chart
+results_summary.set_index('Model')[['Standalone/Final AUC', 'PR-AUC']].plot(kind='bar', figsize=(8, 5))
+plt.title('Model Comparison: AUC vs PR-AUC')
+plt.ylabel('Score')
+plt.xticks(rotation=15)
+plt.savefig('model_comparison.png', dpi=150, bbox_inches='tight')
+plt.show()
