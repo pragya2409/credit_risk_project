@@ -194,6 +194,20 @@ pickle.dump({
     "test": {"lgbm": lgbm_test, "xgb": xgb_test, "lr": lr_test},
 }, open("stack_cache.pkl", "wb"))
 
+# Proxy check: LightGBM with vs without gender
+def gender_gap(cols):
+    m = LGBMClassifier(n_estimators=500, random_state=42, verbose=-1).fit(X_train[cols], y_train)
+    p = m.predict_proba(X_test[cols])[:, 1]
+    approved = pd.Series(p <= np.quantile(p, 0.80), index=X_test.index)
+    g = X_test["CODE_GENDER_M"]
+    return roc_auc_score(y_test, p), approved[g == 0].mean(), approved[g == 1].mean()
+
+all_cols = list(X_train.columns)
+for name, cols in [("with gender", all_cols),
+                   ("without gender", [c for c in all_cols if c != "CODE_GENDER_M"])]:
+    auc, fa, ma = gender_gap(cols)
+    print(f"{name}: AUC {auc:.4f} | approval F {fa:.3f} M {ma:.3f} | DI {ma/fa:.3f}")
+
 from sklearn.metrics import average_precision_score
 # Week 5: Comparison summary
 results_summary = pd.DataFrame({
