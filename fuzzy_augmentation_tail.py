@@ -389,3 +389,13 @@ print(f"STACK DELTA on rejects: AUC {auc_stack_rejects_a - auc_stack_rejects_b:+
 print(f"STACK DELTA on holdout: AUC {auc_stack_holdout_a - auc_stack_holdout_b:+.4f}  PR-AUC {pr_stack_holdout_a - pr_stack_holdout_b:+.4f}")
 print(f"Meta weights (baseline):  LGBM={meta_b.coef_[0][0]:.3f} XGB={meta_b.coef_[0][1]:.3f} LR={meta_b.coef_[0][2]:.3f}")
 print(f"Meta weights (augmented): LGBM={meta_a.coef_[0][0]:.3f} XGB={meta_a.coef_[0][1]:.3f} LR={meta_a.coef_[0][2]:.3f}")
+
+import pickle, numpy as np
+keep = [c for c in holdout_eval.columns
+        if c in ("SK_ID_CURR", "TARGET", "DAYS_BIRTH") or "GENDER" in c]
+print("holdout_eval kept cols:", keep, "| rows:", len(holdout_eval))
+print("index sample:", list(holdout_eval.index[:3]))
+pickle.dump(
+    holdout_eval[keep].assign(pred_base=np.asarray(pred_holdout_b),
+                              pred_aug=np.asarray(pred_holdout_a)),
+    open("fuzzy_tail_cache.pkl", "wb"))
