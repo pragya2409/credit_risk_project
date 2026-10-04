@@ -186,6 +186,13 @@ final_auc = roc_auc_score(y_test, final_test_preds)
 print(f"Stacked ensemble AUC (on true test set): {final_auc:.4f}")
 print(f"Meta-model weights: LightGBM={meta_model.coef_[0][0]:.3f}, XGBoost={meta_model.coef_[0][1]:.3f}, LR={meta_model.coef_[0][2]:.3f}")
 
+import pickle
+pickle.dump({
+    "idx_train": X_train.index.to_numpy(), "idx_test": X_test.index.to_numpy(),
+    "y_train": y_train.to_numpy(), "y_test": y_test.to_numpy(),
+    "oof":  {"lgbm": lgbm_oof,  "xgb": xgb_oof,  "lr": lr_oof},
+    "test": {"lgbm": lgbm_test, "xgb": xgb_test, "lr": lr_test},
+}, open("stack_cache.pkl", "wb"))
 
 from sklearn.metrics import average_precision_score
 # Week 5: Comparison summary
