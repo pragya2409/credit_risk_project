@@ -4,3 +4,7 @@ __pycache__/
 data/
 .idea/
 kaggle_dataset/
+
+data/lc/
+stack_cache.pkl
+lc_scores_hc.csv
