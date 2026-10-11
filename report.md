@@ -238,3 +238,16 @@ Validity = at least one counterfactual with a loan reduction of at most 50% conf
 - **Examples:** the borderline applicant (p = 0.118) needs a 1% reduction; a mid-range one (p = 0.131) a 4% reduction; applicants flippable only at the 50% cap sit at p = 0.156 and 0.186. The typical and clear-cut Week 9 showcase applicants (p = 0.179 and 0.777) have no feasible counterfactual.
 - - Counterfactuals found by minimal search sit just below the cutoff (for two of the three charted applicants, p falls only about 0.0015 under it), so the advice has little margin; a larger reduction would be needed for a robust approval.
 - The model is a tree ensemble, so p(default) changes in steps as a feature crosses a split threshold: a 1% loan cut moves the borderline applicant's score by 0.0076, while larger cuts can be needed elsewhere. Counterfactual size is therefore not proportional to distance from the cutoff.
+
+
+## Week 11: Simulator data (in progress)
+
+### Home Credit auxiliary tables
+- `bureau_balance`: 27.3M monthly rows over 817,395 credits (median 26 months of history, max 97). STATUS shares: C 50.0%, 0 27.5%, X 21.3%, 1 0.89%, 5 0.23%, 2 0.09%, 3 0.03%, 4 0.02%.
+- Coverage: 774,354 of 1,716,428 `bureau` credits (45%) have monthly history; 92,231 of 307,511 training applicants (30%) have at least one such credit. The simulator therefore cannot use an applicant's own bureau history for 70% of applicants.
+- Month-to-month transitions (consecutive months only), selected rates: 0→0 85.8%, 0→1 2.0%; 2→3 30.2%, 3→4 54.0%, 4→5 66.1%; 5→5 91.3%; C→C ~100%; X→X 87.6%. Late states roll upward, consistent with forward time.
+- `installments_payments`: 13.6M rows; 8.4% paid late, 0.3% more than 30 days late, 9.4% underpaid by more than 1 unit; median payment 6 days early, 99th percentile 18 days late.
+- Caveats: `bureau_balance` is history with other lenders (a proxy for Home Credit behaviour); transitions are counted per credit, not per applicant, so applicants with many credits carry more weight.
+
+### State space (provisional)
+Current, Late 1-30, Late 31-60, Late 61-90, Late 91-120, Default (code 5: 120+ days past due or sold/written off), Closed. Status X (unknown, 21% of rows) is excluded: transitions into or out of X are dropped and rows renormalised. Closed is absorbing; Default is treated as absorbing in the simulator (91% of observed 5→5 transitions). Codes 2-4 are kept separate because the delinquency ladder is the main dynamic and every row has thousands of transitions.
