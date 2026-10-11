@@ -48,7 +48,6 @@ print("\nExamples (flippable applicants, sorted by p_original):")
 ex = man.dropna(subset=["manual_best"]).sort_values("p_original").iloc[::2].head(10)
 print(ex[["row_id", "p_original", "credit_only", "annuity_only", "both", "dice_best"]]
       .round(3).to_string(index=False))
-c.to_csv("cf_dice_evaluated.csv", index=False)
-man.to_csv("cf_manual_evaluated.csv", index=False)
+
 
 print(ao[~ao.plausible][["row_id", "annuity_only", "term_cf"]].round(1).to_string(index=False))
