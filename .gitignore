@@ -9,3 +9,6 @@ data/lc/
 stack_cache.pkl
 lc_scores_hc.csv
 fuzzy_tail_cache.pkl
+.venv/
+data/
+__pycache__/
