@@ -1,0 +1,19 @@
+{
+  "log_amount_mean": 6.500401653465579,
+  "log_amount_std": 1.1865992128097467,
+  "category_share": {
+    "Education": 0.0304,
+    "Entertainment": 0.0804,
+    "Food": 0.1499,
+    "Fuel": 0.1003,
+    "Grocery": 0.1999,
+    "Healthcare": 0.0507,
+    "Other": 0.0993,
+    "Shopping": 0.1195,
+    "Transport": 0.0804,
+    "Utilities": 0.0894
+  },
+  "monthly_spend_change_std_pct": 3.9220800381630543,
+  "monthly_spend_cv": 0.02302559268262411,
+  "failure_rate": 0.049504
+}

@@ -251,3 +251,11 @@ Validity = at least one counterfactual with a loan reduction of at most 50% conf
 
 ### State space (provisional)
 Current, Late 1-30, Late 31-60, Late 61-90, Late 91-120, Default (code 5: 120+ days past due or sold/written off), Closed. Status X (unknown, 21% of rows) is excluded: transitions into or out of X are dropped and rows renormalised. Closed is absorbing; Default is treated as absorbing in the simulator (91% of observed 5→5 transitions). Codes 2-4 are kept separate because the delinquency ladder is the main dynamic and every row has thousands of transitions.
+
+### UPI dataset
+- Source: `skullagos5246/upi-transactions-2024-dataset` (Kaggle, CC0). 250,000 transactions dated 2024-01-01 to 2024-12-30; 17 columns; no missing values. The project plan referred to a 2023 dataset; the 2024 one is used.
+- Provenance: likely synthetic. Category shares are round (20.0%, 15.0%, 10.0%, 8.0%, 8.0%, 3.0%...), the non-success rate is 4.95%, log-amounts are almost exactly symmetric (skew 0.03), and monthly volume is flat with no seasonality. It is treated as a source of scenario parameters, not as evidence about real spending behaviour.
+- Limits: no user or account identifier and no balance, so individual trajectories and balance trends cannot be built and the data cannot be joined to Home Credit applicants. Only population-level parameters are used.
+- Parameters taken: amount distribution (lognormal, log-mean 6.500, log-std 1.187; median 629 INR, 99th percentile 9,003 INR); category mix (Grocery 20.0%, Food 15.0%, Shopping 11.9%, Fuel 10.0%, Other 9.9%, Utilities 8.9%, Transport 8.0%, Entertainment 8.0%, Healthcare 5.1%, Education 3.0%); monthly volatility of total spend (std of month-over-month change ≈ [fill in from upi_params.json]%, from 11 changes, so only a rough scenario setting).
+- The link between spending shocks and delinquency is a modelling assumption: the UPI data contain no repayment outcomes. Results involving it are reported as a sensitivity analysis, not as an estimated effect.
+- Age group and state are not used, consistent with the fairness analysis (Weeks 8-9).
