@@ -170,3 +170,54 @@ Dropping gender costs 0.003 AUC and closes about half the DI gap. `CODE_GENDER_M
 
 ### Figures
 shap_beeswarm.png, shap_bar.png, shap_dep_DAYS_BIRTH.png, shap_dep_OWN_CAR_AGE.png, waterfall_{clear_cut,borderline,typical}.png
+
+## Week 10: Counterfactual guidance (DiCE)
+
+### Smoke test (unconstrained)
+- **Setup:** DiCE (`dice-ml`, random method) wrapped around the Week 9 LightGBM model, run on Python 3.14. Background data: 5,000 training rows, median-filled, cast to float (DiCE rejects the boolean dummy columns that `get_dummies` produces).
+- **Decision boundary:** DiCE flips at p = 0.5, but the rejection rule is p > 0.118 (riskiest 20% of holdout). A wrapper rescales the model's log-odds so that p = cutoff maps to 0.5, making "desired class 0" mean "approved at our cutoff".
+- **Test case:** the borderline rejected applicant (row 187299, p = 0.1182 vs cutoff 0.1182). Three counterfactuals found; re-scoring with the real model gives p = 0.081, 0.098, 0.098, all below the cutoff.
+
+### Finding: unconstrained counterfactuals are not actionable
+Allowing `AMT_CREDIT`, `AMT_GOODS_PRICE` and `AMT_ANNUITY` to vary freely produced:
+- goods price +54% (612,000 to 940,850) with everything else unchanged;
+- annuity increased 5-6x (35,091 to 205,293 and 175,596) with everything else unchanged;
+- `AMT_CREDIT` never changed.
+
+Each counterfactual flips the model's decision but none is advice an applicant could follow. Raising the loan or repayment amount to *lower* predicted risk reflects how the model scores unusual feature combinations (consistent with the Week 9 beeswarm, where higher goods price pushes toward repayment), not a causal effect. Counterfactuals are model-based and say nothing about what a lender would actually approve.
+
+### Design decision: constrain the action space
+- Only loan terms can change, and only downward: `AMT_CREDIT` and `AMT_ANNUITY`, with a maximum 50% reduction.
+- Held fixed: `AMT_GOODS_PRICE` (the item being purchased), protected attributes (gender, age, marital status), EXT_SOURCE scores (not directly changeable by the applicant), and all other features.
+- Random seed fixed (42): repeated unseeded runs on the same applicant returned different counterfactuals.
+
+### Constrained smoke test
+- Same borderline applicant (row 187299), loan terms only, decreases only, max 50% reduction, seed 42.
+- Three counterfactuals found; all re-score below the cutoff with the real model (p = 0.087, 0.111, 0.111 vs cutoff 0.118).
+- Only `AMT_CREDIT` changed (684,707 to 418,902 / 625,294 / 648,830, i.e. reductions of 38.8%, 8.7% and 5.2%); `AMT_ANNUITY` was not needed.
+- The counterfactuals are valid but not minimal: DiCE's random method returned a 38.8% cut when a 5.2% cut also flips the decision. The manual-perturbation baseline (below) finds the smallest flipping change for comparison.
+- Caveat: this applicant sits exactly on the cutoff, so small changes are expected. The clear-cut case is evaluated next.
+
+### Counterfactual generation (33 rejected applicants)
+- **Sample:** the three Week 9 showcase applicants (rows 134750, 187299, 45367) plus 30 random rejected applicants (fixed seed 42).
+- **Constraints:** only `AMT_CREDIT` and `AMT_ANNUITY` may change, decreases only, at most 50% reduction; everything else fixed. Three counterfactuals requested per applicant (DiCE random method, seed 42).
+- **Validation:** every counterfactual is re-scored with the real LightGBM model and kept only if p(default) falls below the 0.118 cutoff. DiCE's own flip check is not relied on.
+- **Method note (NaN handling):** DiCE needs complete data, but LightGBM treats missingness as a signal, so filling NaNs with medians changes an applicant's score (e.g. row 134750 scored 0.665 after filling vs 0.777 on the raw row). The first run therefore included applicants who were not actually rejected, and its validity figure was inflated (25 of 33, discarded). The final run scores the raw row, restores each applicant's own missing-value pattern on every candidate counterfactual, and asserts that every selected applicant is rejected under the real model.
+
+### Results: validity
+Validity = at least one counterfactual with a loan reduction of at most 50% confirmed by the real model.
+
+| Risk band (p_original) | With a counterfactual | Share |
+|---|---|---|
+| 0.118 to 0.15 | 10 of 11 | 91% |
+| 0.15 to 0.20 | 4 of 14 | 29% |
+| above 0.20 | 0 of 8 | 0% |
+| **All** | **14 of 33** | **42%** |
+
+- Counterfactuals exist up to p = 0.189; none were found above that. This includes the clear-cut showcase applicant (p = 0.777) and the typical one (p = 0.179). The borderline showcase applicant (p = 0.118) has three.
+- Within the middle band the pattern is not monotonic (e.g. an applicant at p = 0.128 has none while one at p = 0.189 does), so some "none found" cases may reflect the limits of DiCE's random search rather than true infeasibility. DiCE's random method is not exhaustive, so 42% is treated as a lower bound pending the manual baseline.
+- For high-risk applicants, loan-size changes within the 50% cap cannot reach approval. The deciding factor for these applicants is the external credit scores (97.6% of rejects, Week 9), which are not something an applicant can change directly.
+
+### Results: which lever DiCE uses
+- Both levers are used. For 5 of the 14 applicants with a counterfactual, at least one counterfactual lowers only the annuity and leaves the credit amount unchanged; for 1 of them every counterfactual is annuity-only. The two kinds of advice differ ("pay less per month, e.g. over a longer term" vs "borrow less"), so they are reported separately in the comparison with the manual baseline.
+- DiCE does not search for the smallest change: for the borderline case it returned both a 38.8% and a 5.2% credit cut, and both flip the decision. Its counterfactuals are valid but not minimal.
