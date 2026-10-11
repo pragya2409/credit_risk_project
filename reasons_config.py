@@ -6,6 +6,18 @@ NOT_REPORTED = {
     "DEF_60_CNT_SOCIAL_CIRCLE",
     "APARTMENTS_MEDI",                # building statistics
     "YEARS_BEGINEXPLUATATION_MODE",
+    "OBS_30_CNT_SOCIAL_CIRCLE",       # other people's behaviour
+    "OBS_60_CNT_SOCIAL_CIRCLE",
+    "APARTMENTS_MODE",                # building statistics
+    "LIVINGAPARTMENTS_AVG",
+    "REGION_POPULATION_RELATIVE",
+    "NAME_EDUCATION_TYPE_Higher_education",
+    "NAME_EDUCATION_TYPE_Secondary___secondary_special",
+    "NAME_EDUCATION_TYPE_Lower_secondary",
+    "NAME_EDUCATION_TYPE_Incomplete_higher",
+    "FLAG_DOCUMENT_3",
+    "FLAG_WORK_PHONE",
+    "HOUR_APPR_PROCESS_START",
 }
 
 EXCLUDED = PROTECTED | NOT_REPORTED
@@ -21,16 +33,28 @@ REASONS = {
     "DAYS_EMPLOYED": "Short or no employment history",
     "NAME_INCOME_TYPE_Working": "Income source type",
     "ORGANIZATION_TYPE_Self_employed": "Self-employment income stability",
-    "NAME_EDUCATION_TYPE_Higher_education": "Education level",
-    "NAME_EDUCATION_TYPE_Secondary___secondary_special": "Education level",
+    "ORGANIZATION_TYPE_Business_Entity_Type_3": "Employer industry",
+    "OCCUPATION_TYPE_Laborers": "Occupation type",
+    "OCCUPATION_TYPE_Sales_staff": "Occupation type",
+    "AMT_REQ_CREDIT_BUREAU_DAY": "Many recent credit enquiries",
     "NAME_CONTRACT_TYPE_Revolving_loans": "Loan product type",
     "DAYS_ID_PUBLISH": "Recent changes to identity/registration details",
     "DAYS_REGISTRATION": "Recent changes to identity/registration details",
-    "FLAG_DOCUMENT_3": "Documentation provided",
-    "FLAG_WORK_PHONE": "Contact details provided",
     "REGION_RATING_CLIENT_W_CITY": "Residential region risk rating",
     "REG_CITY_NOT_LIVE_CITY": "Registered address differs from city of residence",
     "DAYS_LAST_PHONE_CHANGE": "Recent phone number change",
     "AMT_REQ_CREDIT_BUREAU_YEAR": "Many recent credit enquiries",
     "AMT_REQ_CREDIT_BUREAU_QRT": "Many recent credit enquiries",
+    "EXT_SOURCE_1": "Low external credit score",
+    "EXT_SOURCE_2": "Low external credit score",
+    "EXT_SOURCE_3": "Low external credit score",
+    "ORGANIZATION_TYPE_Construction": "Employer industry",
+    "ORGANIZATION_TYPE_Transport__type_3": "Employer industry",
+    "OCCUPATION_TYPE_Drivers": "Occupation type",
+    "OCCUPATION_TYPE_Low_skill_Laborers": "Occupation type",
 }
+
+BUILDING_SUFFIXES = ("_AVG", "_MODE", "_MEDI")
+
+def is_excluded(feat):
+    return feat in EXCLUDED or feat.endswith(BUILDING_SUFFIXES)
