@@ -293,3 +293,82 @@ Current, Late 1-30, Late 31-60, Late 61-90, Late 91-120, Default (code 5: 120+ d
 - Not claimed: the 0.9% default-reach rate is not comparable with the 8.1% `TARGET` rate (different event, different lender); no causal effect of spending behaviour on delinquency is estimated; the UPI data are likely synthetic and cannot be linked to applicants.
 
 Figures: `transition_matrix_heatmap.png`, `empirical_vs_simulated.png`, `stress_sweep.png`.
+
+## Week 12: Is the stack's edge real?
+
+### Design
+Test set: n = 61,502 held-out loans. Six comparisons in two families.
+
+**Primary family (planned before running, Holm-corrected over 4 tests):**
+stack vs XGBoost, stack vs LightGBM, stack vs LR, XGBoost vs LightGBM
+(all base models are the standalone single fits from Week 5).
+
+**Exploratory family (added after seeing the cached results, Holm within its own pair):**
+stack vs bagged XGBoost, bagged XGBoost vs standalone XGBoost.
+
+Two tools, answering different questions:
+- **DeLong (paired):** uncertainty from the finite test set, for one fixed pair of trained models.
+- **5 repeated runs (new stratified 80/20 split and training seed each):** variation from the data split and training randomness. Reported as mean ± std and the number of seeds in which the stack beats XGBoost. No p-value from n = 5, and the splits overlap, so the std understates true uncertainty.
+
+**Decision rule (fixed before running):** the stack "outperforms" XGBoost only if the DeLong CI excludes 0 after Holm correction AND the stack wins in at least 4 of 5 seeds. Otherwise the claim is "comparable".
+
+### Validation of the DeLong implementation
+- AUCs match `roc_auc_score` to within 1e-15 for all six score vectors (predictions cast to float64; XGBoost's float32 output otherwise causes spurious mismatches).
+- Standard error of the stack vs bagged-XGBoost difference: DeLong 0.000698 vs 500-resample bootstrap 0.000719 (within 3%).
+- XGBoost standalone scores contain a few ties (61,375 unique values out of 61,502); DeLong handles ties through mid-ranks.
+
+### Test-set metrics
+
+| Model | AUC | PR-AUC |
+|---|---|---|
+| Stack (LR meta-learner) | 0.7579 | 0.2485 |
+| XGBoost (standalone) | 0.7562 | 0.2476 |
+| LightGBM (standalone) | 0.7520 | 0.2388 |
+| Logistic regression | 0.7469 | 0.2297 |
+| XGBoost (5-fold averaged) | 0.7591 | 0.2499 |
+| LightGBM (5-fold averaged) | 0.7562 | 0.2495 |
+
+### DeLong results
+
+| Comparison (A vs B) | AUC diff (A−B) | 95% CI | p (raw) | p (Holm) |
+|---|---|---|---|---|
+| **Primary** | | | | |
+| Stack vs XGBoost | +0.0017 | [−0.0001, +0.0035] | 0.057 | 0.057 |
+| Stack vs LightGBM | +0.0059 | [+0.0035, +0.0083] | <0.001 | <0.001 |
+| Stack vs LR | +0.0110 | [+0.0093, +0.0127] | <0.001 | <0.001 |
+| XGBoost vs LightGBM | +0.0042 | [+0.0019, +0.0064] | 0.0003 | 0.0006 |
+| **Exploratory (post-hoc)** | | | | |
+| Stack vs bagged XGBoost | −0.0012 | [−0.0026, +0.0002] | 0.083 | 0.083 |
+| Bagged XGBoost vs standalone XGBoost | +0.0029 | [+0.0018, +0.0041] | <0.001 | <0.001 |
+
+### Why the base-model numbers differ from Week 5
+The cached test predictions used by the stack are the average of the five
+cross-validation fold models (each trained on 80% of train), while the Week 5
+standalone models are single fits on all of train. Averaging reduces variance,
+so the stack's base learners were stronger than the Week 5 baselines. The
+Week 5 gap (+0.0017) therefore compared a bagged stack against un-bagged
+models. Both baselines are reported. The bagged comparison was added after
+seeing the cached results, so it is labelled exploratory.
+
+### Repeated runs (5 seeds)
+TODO after CP3/CP4: table of mean ± std AUC and PR-AUC per model (standalone and bagged),
+and the number of seeds in which the stack beats XGBoost.
+
+### Interpretation
+- The stack is clearly better than logistic regression and than LightGBM.
+- Against a single XGBoost, the stack's +0.0017 AUC is not statistically
+  significant after Holm correction (CI barely includes 0, p = 0.057), and the
+  effect is small in practical terms.
+- Averaging the five fold-trained XGBoost models alone improves on a single
+  XGBoost by +0.0029, more than the stack's whole edge. Against that bagged
+  XGBoost the stack is 0.0012 lower (not significant, p = 0.083). The stack's
+  apparent advantage is attributable to bagging, not to stacking.
+- By the decision rule, the stack does not outperform XGBoost.
+
+### Wording change
+Week 5: "the stack outperforms XGBoost" is replaced by:
+"The stack is comparable to XGBoost (+0.0017 AUC over a single XGBoost, 95% CI
+[−0.0001, +0.0035], Holm p = 0.057) and clearly better than LightGBM and
+logistic regression; the gain over a single XGBoost is explained by averaging
+fold models rather than by stacking."
+[Revisit after the repeated-runs results.]

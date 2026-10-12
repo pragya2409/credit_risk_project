@@ -12,3 +12,4 @@ fuzzy_tail_cache.pkl
 .venv/
 data/
 __pycache__/
+repeated_runs/
