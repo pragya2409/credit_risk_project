@@ -372,3 +372,38 @@ Week 5: "the stack outperforms XGBoost" is replaced by:
 logistic regression; the gain over a single XGBoost is explained by averaging
 fold models rather than by stacking."
 [Revisit after the repeated-runs results.]
+
+## Week 12: Statistical rigor
+
+### Repeated runs
+- Design: 10 seeds (42, 7, 123, 2024, 31, 1, 2, 3, 4, 5). Each seed draws a new stratified 80/20 split; fold assignments and model randomness follow the seed. Standalone models are single fits on the training set; "bagged" models are the average of the 5 fold models used to build the stack's inputs. Preprocessing (imputation, column drops, missingness flags) is fitted once on the full table before splitting, so the seed-to-seed spread understates total variability. Seed 42 reproduces the earlier Week 4-5 results exactly.
+
+| Model | AUC mean (std) | PR-AUC mean (std) |
+|---|---|---|
+| Logistic Regression | 0.7450 (0.0024) | 0.2229 (0.0043) |
+| LightGBM | 0.7482 (0.0029) | 0.2300 (0.0052) |
+| LightGBM, fold-averaged | 0.7535 (0.0025) | 0.2392 (0.0063) |
+| XGBoost | 0.7537 (0.0027) | 0.2374 (0.0057) |
+| XGBoost, fold-averaged | 0.7561 (0.0028) | 0.2408 (0.0055) |
+| Stacked ensemble | 0.7555 (0.0026) | 0.2398 (0.0055) |
+
+- Paired differences, stack minus model (AUC, mean difference, seeds where the stack is higher): vs XGBoost +0.0019 (10/10); vs LightGBM +0.0073 (10/10); vs LR +0.0105 (10/10); vs fold-averaged LightGBM +0.0020 (10/10); vs fold-averaged XGBoost -0.0006 (3/10). PR-AUC: +0.0024 (10/10) vs XGBoost, -0.0011 (1/10) vs fold-averaged XGBoost, +0.0005 (6/10) vs fold-averaged LightGBM.
+- Interpretation: the stack consistently beats every standalone model, but a fold-averaged XGBoost matches or slightly exceeds it, so the benefit of the stacking layer itself over averaging the best base learner's folds is not demonstrated. Averaging fold models improves XGBoost by about 0.0024 AUC and LightGBM by about 0.0053.
+- Caveats: test sets of different seeds overlap, so the paired t-tests (which I do not rely on) are optimistic; differences are small in absolute terms (about 0.002 AUC).
+
+### DeLong's test (seed 42 test set)
+- Implementation checked against sklearn (AUC identical to ~1e-16) and a bootstrap (stack vs XGBoost standard error 0.000698 vs 0.000719). Holm correction across the primary family of four comparisons. [Paste the table from `delong_results.csv`: stack vs XGBoost +0.00172, 95% CI [-0.00005, 0.00349], p(Holm) 0.057; stack vs LightGBM +0.00589; stack vs LR +0.01095; XGBoost vs LightGBM +0.00417, p(Holm) 0.0006.]
+- Post-hoc comparison (not in the corrected family): stack vs fold-averaged XGBoost -0.00121, p = 0.083.
+- Interpretation: on a single split a +0.0017 gap over XGBoost cannot be separated from sampling noise by DeLong's test (the interval just includes zero); the repeated runs show the same sign on all ten splits.
+
+### Fairness uncertainty (Week 12 CP5)
+- Method: 1,000 bootstrap resamples of the test applicants; in each, the 80%-approval threshold is recomputed and the metrics are evaluated as in Week 8. Paired comparisons use the same resampled rows for both models. The point estimates reproduce Week 8 exactly. Intervals reflect test-set sampling only, with the fitted models fixed; they do not include variation from retraining or from different splits.
+
+| Model (test set) | Gender DI ratio | Gender TPR gap | Gender FPR gap | Age DI ratio | Age TPR gap | Age FPR gap |
+|---|---|---|---|---|---|---|
+| Fold-averaged XGBoost | 0.838 [0.830, 0.845] | 0.185 [0.159, 0.212] | 0.121 [0.115, 0.129] | 0.682 [0.671, 0.693] | 0.428 [0.374, 0.479] | 0.270 [0.259, 0.280] |
+| Stack | 0.831 [0.823, 0.839] | 0.193 [0.166, 0.220] | 0.127 [0.121, 0.135] | 0.657 [0.647, 0.668] | 0.456 [0.405, 0.507] | 0.294 [0.282, 0.304] |
+
+- Gender disparity stays above the 0.8 reference line in every interval, narrowly; age disparity is far below it (DI 0.66-0.68). Per-group AUC differs little by gender (gap about 0.007, interval including values near zero) but by about 0.05 across age bands.
+- Stack minus fold-averaged XGBoost (paired): gender DI -0.0068 [-0.0101, -0.0029], gender FPR gap +0.0060 [+0.0025, +0.0091], age DI -0.0248 [-0.0310, -0.0191], age FPR gap +0.0238 [+0.0181, +0.0305], age TPR gap +0.0273 [+0.0017, +0.0544]; gender TPR gap and AUC gaps not distinguishable from zero. Intervals are not corrected for multiple comparisons. The stack therefore has slightly larger group disparities than a fold-averaged XGBoost, while its accuracy is not better (Week 12), so the interpretable meta-layer carries no measurable accuracy cost but a small fairness cost.
+- Augmentation (tail-experiment holdout, augmented minus baseline stack): all eight paired differences have intervals including zero (e.g. gender DI -0.0002 [-0.0022, +0.0026]; age TPR gap +0.0158 [-0.0058, +0.0384]), so no change in the disparities is detected, though the age TPR-gap interval is wide enough that a change of a few points cannot be excluded.
