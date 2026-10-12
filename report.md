@@ -138,7 +138,8 @@ Dropping gender costs 0.003 AUC and closes about half the DI gap. `CODE_GENDER_M
 
 **Outputs.** `fairness.py`, `fairness_results.csv`, `fairness_summary.csv`.
 ## Week 9: SHAP adverse-action reasons
-
+![Global SHAP drivers](shap_beeswarm.png)
+![Example rejection explanation](waterfall_clear_cut.png)
 ### Setup
 - Model: LightGBM, holdout AUC 0.759.
 - SHAP: TreeExplainer; global plots on an 8K holdout sample, reasons on all rejected applicants. Reconstruction error ~1e-14.
@@ -259,3 +260,10 @@ Current, Late 1-30, Late 31-60, Late 61-90, Late 91-120, Default (code 5: 120+ d
 - Parameters taken: amount distribution (lognormal, log-mean 6.500, log-std 1.187; median 629 INR, 99th percentile 9,003 INR); category mix (Grocery 20.0%, Food 15.0%, Shopping 11.9%, Fuel 10.0%, Other 9.9%, Utilities 8.9%, Transport 8.0%, Entertainment 8.0%, Healthcare 5.1%, Education 3.0%); monthly volatility of total spend (std of month-over-month change ≈ [fill in from upi_params.json]%, from 11 changes, so only a rough scenario setting).
 - The link between spending shocks and delinquency is a modelling assumption: the UPI data contain no repayment outcomes. Results involving it are reported as a sensitivity analysis, not as an estimated effect.
 - Age group and state are not used, consistent with the fairness analysis (Weeks 8-9).
+
+ ### Transition matrices (CP3)
+- Method: `bureau_balance` sorted per credit; transitions counted only between consecutive months, with status X (unknown) dropped. 27,299,925 rows give 20,326,767 usable transitions over 707,702 credits. Seven states: Current, Late 1-30, 31-60, 61-90, 91-120, Default (code 5), Closed.
+- Pooled matrix (selected rows): Current stays 92.6%, goes to Late 1-30 2.1%; Late 1-30 returns to Current 49.6%; 31-60 to 61-90 31.5%; 61-90 to 91-120 55.4%; 91-120 to Default 69.1%; Default stays 94.1%; Closed is absorbing.
+- Segmenting by the applicant's `TARGET` (labeled transitions only, 11.15M, 55% of the total; 421,664 credits for TARGET 0 and 37,192 for TARGET 1): defaulters go from Current to any late state at 3.15% vs 2.23% (ratio 1.41). Later ladder ratios are 1.08-1.16 and rest on small counts (defaulters: 1,515, 649 and 438 transitions in the last three late states), so only the Current row is segment-specific in the simulator and the later rows are pooled.
+- Caveats: counts are per credit-month, not per applicant, so effective sample sizes are smaller than the raw counts; `TARGET` describes the Home Credit loan while `bureau_balance` covers other lenders; only 30% of applicants have bureau history.
+- - Link check: of 817,395 credits with monthly history, 5.3% are not in `bureau.csv`, 64.0% belong to training applicants (labeled) and 30.7% to test applicants (unlabeled). Unlabeled credits contribute only to the pooled matrix.
