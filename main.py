@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pickle
 df = pd.read_csv('/Users/pragya/Development/credit_risk_project/data/application_train.csv')
 print(df.shape)
 print(df.head())
@@ -109,6 +110,8 @@ xgb_model = XGBClassifier(n_estimators=500, learning_rate=0.05, random_state=42,
 xgb_model.fit(X_train, y_train)  # same raw, unscaled X_train as LightGBM
 
 xgb_preds = xgb_model.predict_proba(X_test)[:, 1]
+pickle.dump({"lr": lr_preds, "lgbm": lgbm_preds, "xgb": xgb_preds},
+            open("standalone_cache.pkl", "wb"))
 xgb_auc = roc_auc_score(y_test, xgb_preds)
 
 print(f"XGBoost baseline AUC: {xgb_auc:.4f}")
