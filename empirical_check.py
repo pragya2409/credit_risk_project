@@ -48,6 +48,7 @@ cols = ["ever_late", "reach_default", "closed_at_end", "late_months"]
 print(f"Holdout applicants' credits with a clean {W}-month window: {len(d):,}")
 print("\nEmpirical (all):\n", d[cols].mean().round(4).to_string())
 print("\nEmpirical by TARGET:\n", d.groupby("TARGET")[cols].mean().round(4).to_string())
+print("\nCredits per TARGET group:\n", d.groupby("TARGET").size().to_string())
 
 print("\nSimulated (overall means):")
 for f in ["simulation_results_fit_seed42.csv", "simulation_results_fit_seed7.csv"]:

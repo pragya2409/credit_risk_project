@@ -13,3 +13,5 @@ fuzzy_tail_cache.pkl
 data/
 __pycache__/
 repeated_runs/
+*.pkl
+repeated_runs/
