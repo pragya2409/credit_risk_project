@@ -1,16 +1,20 @@
+
+import sys
 import numpy as np
 import pandas as pd
 from common import load_model_and_data
 
 # ---- settings ----
-H, N_PATHS, N_APPS, SEED = 24, 500, 5000, 42   # months, paths per applicant, applicants
+H, N_PATHS, N_APPS = 24, 500, 5000,   # months, paths per applicant, applicants
+SEED = int(sys.argv[1]) if len(sys.argv) > 1 else 42
+SUFFIX = sys.argv[2] if len(sys.argv) > 2 else ""
 ABSORB_DEFAULT = True                          # treat Default(5) as absorbing
 LABELS = ["Current", "Late 1-30", "Late 31-60", "Late 61-90",
           "Late 91-120", "Default(5)", "Closed"]
 K, CUR, DEF, CLO = 7, 0, 5, 6
 
 def load(name):
-    return pd.read_csv(f"transition_matrix_{name}.csv", index_col=0).loc[LABELS, LABELS].values
+    return pd.read_csv(f"transition_matrix_{name}{SUFFIX}.csv", index_col=0).loc[LABELS, LABELS].values
 
 P_all, P0, P1 = load("all"), load("target0"), load("target1")
 
@@ -58,7 +62,7 @@ res = pd.DataFrame({
     "mean_late_months": late_months.mean(1),
     "p_closed_at_end": (state == CLO).mean(1),
 })
-res.to_csv("simulation_results.csv", index=False)
+res.to_csv(f"simulation_results{SUFFIX}_{SEED}.csv", index=False)
 
 res["risk_quintile"] = pd.qcut(res.p_default, 5, labels=False) + 1
 cols = ["p_default", "p_ever_late", "p_reach_default", "mean_late_months", "p_closed_at_end"]
