@@ -47,6 +47,7 @@ def run(beta):
     ever_late = np.zeros(state.shape, bool)
     ever_def = np.zeros(state.shape, bool)
     worst = np.zeros(N_PATHS)
+    late_share = np.zeros((N_PATHS, H + 1))      # month 0: everyone is Current
     for t in range(H):
         s = Z[rng.integers(0, len(Z), N_PATHS)]   # one shock per path-month, shared by all applicants
         mult = np.exp(beta * s) / norm
@@ -60,11 +61,13 @@ def run(beta):
         ever_late |= is_late
         ever_def |= (state == DEF)
         worst = np.maximum(worst, is_late.mean(0))
-    return ever_late.mean(0), ever_def.mean(0), worst   # each: one value per path
-
+        late_share[:, t + 1] = is_late.mean(0)
+    return ever_late.mean(0), ever_def.mean(0), worst, late_share
 rows = []
 for beta in BETAS:
-    el, ed, wl = run(beta)
+    el, ed, wl, ls = run(beta)
+    pd.DataFrame(ls, columns=[f"m{t}" for t in range(H + 1)]).to_csv(
+        f"fan_chart_paths_beta{beta:g}_seed{SEED}.csv", index=False)
     rows.append({"beta": beta,
                  "ever_late_mean": el.mean(), "ever_late_std": el.std(), "ever_late_p95": np.quantile(el, .95),
                  "default_mean": ed.mean(), "default_p95": np.quantile(ed, .95),
