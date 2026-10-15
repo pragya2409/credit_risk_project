@@ -1,0 +1,9 @@
+component,script,seconds,minutes,status
+"Fuzzy augmentation, Exp A (no selection bias)",fuzzy_augmentation.py,158.2,2.64,ok
+"Fuzzy augmentation, Exp B (hidden rejects)",fuzzy_augmentation_tail.py,423.5,7.06,ok
+SHAP reason reports,generate_reason.py,18.0,0.3,ok
+DiCE counterfactuals,dice_constrained.py,20.5,0.34,ok
+Transition matrices,transition_matrices_fit.py,12.6,0.21,ok
+Monte Carlo simulator,simulator.py,9.1,0.15,ok
+Ten-seed repeated runs,repeated_runs.py,7.0,0.12,ok
+Total,,648.9,10.82,
